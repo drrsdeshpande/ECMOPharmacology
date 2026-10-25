@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECMO Pharmacology Workshop | EDIC 2 Master Viva Dashboard</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              navy: '#0b192c',
+              dark: '#15253b',
+              blue: '#0284c7',
+              teal: '#0d9488',
+              crimson: '#e11d48',
+              amber: '#d97706',
+              slate: '#1e293b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- KaTeX for high-fidelity clinical and PK math formulas -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    
+    /* Custom subtle scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-alarm {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col selection:bg-sky-500 selection:text-white">
+
+  <!-- TOP NOTIFICATION BANNER / TOAST CONTAINER -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
+  <!-- HEADER & PRIMARY NAVIGATION BAR -->
+  <header class="bg-slate-900 text-white shadow-xl sticky top-0 z-40 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap justify-between items-center gap-3">
+      
+      <!-- Brand & Title -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-teal-500 flex items-center justify-center font-black text-xl tracking-wider text-white shadow-md shadow-sky-900/30">
+          EC
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="font-extrabold text-base sm:text-lg leading-tight tracking-wide text-white">Pharmacology in ECMO</h1>
+            <span class="text-[10px] bg-sky-500/20 text-sky-300 font-bold px-2 py-0.5 rounded border border-sky-400/30 uppercase tracking-wider">EDIC 2 Master Viva</span>
+          </div>
+          <p class="text-[11px] text-slate-400 font-medium">Extracorporeal Life Support Organization (ELSO) & Euro-ELSO Curriculum</p>
+        </div>
+      </div>
+
+      <!-- TIMER & SIMULATION TOOLBAR -->
+      <div class="flex items-center flex-wrap gap-2.5 sm:gap-3">
+        
+        <!-- 15-Minute Official Exam Countdown -->
+        <div class="flex items-center bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700/80 shadow-inner space-x-2.5">
+          <div class="flex flex-col">
+            <span class="text-[9px] text-slate-400 font-semibold tracking-wider uppercase leading-none">Viva Clock</span>
+            <span id="timerPhase" class="text-[10px] text-sky-400 font-medium leading-tight">Reading (0-3m)</span>
+          </div>
+          <span id="timerDisplay" class="mono text-lg font-bold text-sky-400 tabular-nums">15:00</span>
+          
+          <div class="flex items-center space-x-1">
+            <button id="timerToggleBtn" onclick="toggleTimer()" class="px-2.5 py-1 text-xs font-semibold bg-sky-600 hover:bg-sky-500 active:scale-95 rounded-lg text-white transition shadow">
+              Start
+            </button>
+            <button onclick="resetTimer()" title="Reset to 15:00" class="px-2 py-1 text-xs font-medium bg-slate-700 hover:bg-slate-600 active:scale-95 rounded-lg text-slate-300 transition">
+              ↺
+            </button>
+            <button id="audioMuteBtn" onclick="toggleSound()" title="Toggle Timer Chime" class="px-2 py-1 text-xs font-medium bg-slate-700 hover:bg-slate-600 active:scale-95 rounded-lg text-slate-300 transition">
+              🔔
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode Toggle: Facilitator vs Delegate -->
+        <button id="modeToggleBtn" onclick="toggleMode()" class="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white shadow-md shadow-emerald-900/30 flex items-center space-x-2 transition">
+          <span id="modeIcon">👨‍🏫</span>
+          <span id="modeLabel">Facilitator Mode</span>
+        </button>
+
+        <!-- Candidate Marksheet Modal Trigger -->
+        <button onclick="openRubricModal()" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 active:scale-95 flex items-center space-x-1.5 transition">
+          <span>📝</span>
+          <span class="hidden sm:inline">Examiner Rubric</span>
+          <span id="rubricScoreBadge" class="bg-sky-500/30 text-sky-200 px-1.5 py-0.2 rounded text-[10px] font-bold">0/8</span>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- STATION TABS -->
+    <div class="max-w-7xl mx-auto px-4 flex space-x-1 overflow-x-auto text-xs sm:text-sm border-t border-slate-800 scrollbar-none">
+      <button onclick="selectStation(1)" id="tab1" class="py-2.5 px-3.5 font-semibold border-b-2 border-sky-400 text-sky-400 flex items-center space-x-2 whitespace-nowrap transition">
+        <span class="w-4 h-4 rounded-full bg-sky-500/20 text-sky-300 flex items-center justify-center text-[10px]">1</span>
+        <span>Antimicrobial PK/PD (VV ECMO)</span>
+      </button>
+      <button onclick="selectStation(2)" id="tab2" class="py-2.5 px-3.5 font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 whitespace-nowrap transition">
+        <span class="w-4 h-4 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[10px]">2</span>
+        <span>Sedation & Propofol (VA ECMO)</span>
+      </button>
+      <button onclick="selectStation(3)" id="tab3" class="py-2.5 px-3.5 font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 whitespace-nowrap transition">
+        <span class="w-4 h-4 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[10px]">3</span>
+        <span>Heparin Resistance & HIT</span>
+      </button>
+      <button onclick="selectStation(4)" id="tab4" class="py-2.5 px-3.5 font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 whitespace-nowrap transition">
+        <span class="w-4 h-4 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[10px]">4</span>
+        <span>ECMO + In-Line CRRT</span>
+      </button>
+      <button onclick="selectStation(5)" id="tab5" class="py-2.5 px-3.5 font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 whitespace-nowrap transition">
+        <span>📚</span>
+        <span>Master Drug Matrix (24 Drugs)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN SIMULATION WORKSPACE -->
+  <main class="max-w-7xl mx-auto px-4 py-5 flex-1 w-full">
+    <div id="stationContent">
+      <!-- Dynamic Clinical Stations Rendered Here -->
+    </div>
+  </main>
+
+  <!-- EXAMINER RUBRIC & VIVA EVALUATION MODAL -->
+  <div id="rubricModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <div class="bg-slate-900 text-white px-5 py-4 flex justify-between items-center border-b border-slate-800">
+        <div>
+          <h3 class="font-bold text-base flex items-center space-x-2">
+            <span>📋</span>
+            <span>EDIC Part 2 Standardized Marking Sheet</span>
+          </h3>
+          <p class="text-xs text-slate-400">Structured viva grading domain criteria (0 = Unsatisfactory, 1 = Borderline, 2 = Satisfactory / Pass)</p>
+        </div>
+        <button onclick="closeRubricModal()" class="text-slate-400 hover:text-white text-lg p-1">✕</button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4 flex-1 text-xs">
+        
+        <!-- Candidate Metadata -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div>
+            <label class="block text-slate-500 font-semibold mb-1">Candidate Name / ID</label>
+            <input type="text" id="candidateName" placeholder="Dr. John Doe (EDIC #2401)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block text-slate-500 font-semibold mb-1">Examiner Name</label>
+            <input type="text" id="examinerName" placeholder="Faculty / EDIC Examiner" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block text-slate-500 font-semibold mb-1">Station Evaluated</label>
+            <select id="rubricStationSelect" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500">
+              <option value="Station 1">Station 1: Antimicrobial PK/PD</option>
+              <option value="Station 2">Station 2: Sedation & Propofol</option>
+              <option value="Station 3">Station 3: Heparin Resistance & HIT</option>
+              <option value="Station 4">Station 4: ECMO + CRRT Dual Circuit</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Scoring Domains -->
+        <div class="space-y-3">
+          
+          <div class="border border-slate-200 rounded-xl p-3 bg-white shadow-sm">
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-bold text-slate-900 text-sm">1. Core PK/PD Concepts on Extracorporeal Support</span>
+              <span class="text-sky-600 font-bold" id="scoreVal1">0 / 2</span>
+            </div>
+            <p class="text-slate-600 mb-2 text-[11px]">Understands expanded volume of distribution ($V_d$), drug extraction by lipophilic membranes, protein binding, and organ failure clearance shifts.</p>
+            <div class="flex gap-2">
+              <button onclick="setDomainScore(1, 0)" id="d1_0" class="score-btn px-3 py-1 rounded border border-slate-300 bg-rose-50 text-rose-800 font-semibold">0 - Unsatisfactory</button>
+              <button onclick="setDomainScore(1, 1)" id="d1_1" class="score-btn px-3 py-1 rounded border border-slate-300 bg-amber-50 text-amber-800 font-semibold">1 - Borderline</button>
+              <button onclick="setDomainScore(1, 2)" id="d1_2" class="score-btn px-3 py-1 rounded border border-slate-300 bg-emerald-50 text-emerald-800 font-semibold">2 - Good / Structured</button>
+            </div>
+          </div>
+
+          <div class="border border-slate-200 rounded-xl p-3 bg-white shadow-sm">
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-bold text-slate-900 text-sm">2. Prescription Redesign & TDM Precision</span>
+              <span class="text-sky-600 font-bold" id="scoreVal2">0 / 2</span>
+            </div>
+            <p class="text-slate-600 mb-2 text-[11px]">Correctly prescribes enhanced loading doses, continuous/prolonged infusions, switches to low-binding/water-soluble alternatives, and establishes explicit TDM targets.</p>
+            <div class="flex gap-2">
+              <button onclick="setDomainScore(2, 0)" id="d2_0" class="score-btn px-3 py-1 rounded border border-slate-300 bg-rose-50 text-rose-800 font-semibold">0 - Unsatisfactory</button>
+              <button onclick="setDomainScore(2, 1)" id="d2_1" class="score-btn px-3 py-1 rounded border border-slate-300 bg-amber-50 text-amber-800 font-semibold">1 - Borderline</button>
+              <button onclick="setDomainScore(2, 2)" id="d2_2" class="score-btn px-3 py-1 rounded border border-slate-300 bg-emerald-50 text-emerald-800 font-semibold">2 - Good / Structured</button>
+            </div>
+          </div>
+
+          <div class="border border-slate-200 rounded-xl p-3 bg-white shadow-sm">
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-bold text-slate-900 text-sm">3. Circuit Complications & Rapid Troubleshooting</span>
+              <span class="text-sky-600 font-bold" id="scoreVal3">0 / 2</span>
+            </div>
+            <p class="text-slate-600 mb-2 text-[11px]">Identifies fresh oxygenator change absorption drops, bivalirudin stasis thrombosis in pump stops, CRRT air suction into negative pre-pump, and PRIS masks.</p>
+            <div class="flex gap-2">
+              <button onclick="setDomainScore(3, 0)" id="d3_0" class="score-btn px-3 py-1 rounded border border-slate-300 bg-rose-50 text-rose-800 font-semibold">0 - Unsatisfactory</button>
+              <button onclick="setDomainScore(3, 1)" id="d3_1" class="score-btn px-3 py-1 rounded border border-slate-300 bg-amber-50 text-amber-800 font-semibold">1 - Borderline</button>
+              <button onclick="setDomainScore(3, 2)" id="d3_2" class="score-btn px-3 py-1 rounded border border-slate-300 bg-emerald-50 text-emerald-800 font-semibold">2 - Good / Structured</button>
+            </div>
+          </div>
+
+          <div class="border border-slate-200 rounded-xl p-3 bg-white shadow-sm">
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-bold text-slate-900 text-sm">4. Communication & Multidisciplinary Prioritization</span>
+              <span class="text-sky-600 font-bold" id="scoreVal4">0 / 2</span>
+            </div>
+            <p class="text-slate-600 mb-2 text-[11px]">Delivers clear, prioritized bedside orders; resolves interdisciplinary conflict (e.g. perfusionist propofol myth) with respectful evidence-based rationale.</p>
+            <div class="flex gap-2">
+              <button onclick="setDomainScore(4, 0)" id="d4_0" class="score-btn px-3 py-1 rounded border border-slate-300 bg-rose-50 text-rose-800 font-semibold">0 - Unsatisfactory</button>
+              <button onclick="setDomainScore(4, 1)" id="d4_1" class="score-btn px-3 py-1 rounded border border-slate-300 bg-amber-50 text-amber-800 font-semibold">1 - Borderline</button>
+              <button onclick="setDomainScore(4, 2)" id="d4_2" class="score-btn px-3 py-1 rounded border border-slate-300 bg-emerald-50 text-emerald-800 font-semibold">2 - Good / Structured</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Examiner Clinical Notes -->
+        <div>
+          <label class="block text-slate-700 font-semibold mb-1">Qualitative Examiner Feedback / Specific Deficiencies</label>
+          <textarea id="examinerNotes" rows="2" placeholder="Candidate failed to recognize bivalirudin stasis clotting in pump-stops, but excelled in beta-lactam continuous infusion rationale..." class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500"></textarea>
+        </div>
+
+      </div>
+
+      <!-- Rubric Footer Summary & Actions -->
+      <div class="bg-slate-50 border-t border-slate-200 px-5 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+          <span class="text-xs text-slate-500">Total Viva Score:</span>
+          <span id="rubricTotalDisplay" class="text-lg font-black text-slate-900">0 / 8</span>
+          <span id="rubricVerdict" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 uppercase">Not Evaluated</span>
+        </div>
+        <div class="flex space-x-2">
+          <button onclick="copyRubricReport()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 transition shadow">
+            <span>📋</span>
+            <span>Copy Assessment Report</span>
+          </button>
+          <button onclick="closeRubricModal()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 rounded-lg text-xs font-semibold text-slate-700 transition">
+            Close
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t border-slate-200 text-center py-3 text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+      <span>EDIC Part 2 Advanced Viva Simulation Module • Pharmacology in ECMO & Extracorporeal Support</span>
+      <span class="text-slate-400">Aligned with ELSO Guidelines, Surviving Sepsis Campaign & KDIGO</span>
+    </div>
+  </footer>
+
+  <!-- JAVASCRIPT APPLICATION CORE -->
+  <script>
+    // AUDIO NOTIFICATION ENGINE (Web Audio API Synthesizer - No external audio URLs)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let soundEnabled = true;
+
+    function playTone(freq = 587.33, type = "sine", duration = 0.25) {
+      if (!soundEnabled) return;
+      try {
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        console.warn("Audio Context init defer:", e);
+      }
+    }
+
+    function playStationChime() {
+      // Pleasant dual alert chime
+      playTone(523.25, 'triangle', 0.2); // C5
+      setTimeout(() => playTone(659.25, 'triangle', 0.35), 180); // E5
+      setTimeout(() => playTone(783.99, 'sine', 0.6), 360); // G5
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById("audioMuteBtn");
+      btn.innerText = soundEnabled ? "🔔" : "🔕";
+      showToast(soundEnabled ? "Audio chimes enabled" : "Audio chimes muted", "info");
+    }
+
+    // IN-APP TOAST NOTIFICATION (Replacing window.alert completely)
+    function showToast(message, type = "info") {
+      const container = document.getElementById("toastContainer");
+      const toast = document.createElement("div");
+      
+      let borderClass = "border-sky-500 bg-slate-900 text-white";
+      let icon = "ℹ️";
+      if (type === "success") {
+        borderClass = "border-emerald-500 bg-slate-900 text-white";
+        icon = "✅";
+      } else if (type === "warning") {
+        borderClass = "border-amber-500 bg-slate-900 text-white";
+        icon = "⚠️";
+      } else if (type === "alarm") {
+        borderClass = "border-rose-600 bg-rose-950 text-white";
+        icon = "🚨";
+      }
+
+      toast.className = `p-3 rounded-xl shadow-xl border-l-4 text-xs font-medium flex items-center space-x-2 pointer-events-auto transform transition-all duration-200 translate-y-2 opacity-0 ${borderClass}`;
+      toast.innerHTML = `<span>${icon}</span><span class="flex-1">${message}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove("translate-y-2", "opacity-0");
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add("opacity-0", "translate-y-[-4px]");
+        setTimeout(() => toast.remove(), 250);
+      }, 4000);
+    }
+
+    // COMPREHENSIVE 24-DRUG MASTER COMPENDIUM DATABASE
+    const masterDrugMatrix = [
+      { name: "Meropenem", class: "Antimicrobial (Carbapenem)", logP: -0.6, pb: 2, extraction: "Negligible (<10%)", crrt: "High (Sc ≈ 1.0)", mandate: "Load 2.0 g; 1.0 g q8h extended (4h) or 3.0 g/24h continuous infusion. TDM target 100% fT > 4x MIC." },
+      { name: "Piperacillin-Tazobactam", class: "Antimicrobial (Penicillin/BLI)", logP: -0.4, pb: 30, extraction: "Negligible (<10%)", crrt: "High (Sc ≈ 0.8)", mandate: "Initial load 4.5 g; then 13.5–18.0 g/day continuous infusion or 4.5 g q6h (4h infusions)." },
+      { name: "Vancomycin", class: "Antimicrobial (Glycopeptide)", logP: -3.1, pb: 52, extraction: "Minimal (<15%)", crrt: "Moderate (Sc ≈ 0.7)", mandate: "Load 25–30 mg/kg actual body weight. Continuous infusion 20–30 mg/kg/day targeting AUC/MIC 400–600." },
+      { name: "Amikacin", class: "Antimicrobial (Aminoglycoside)", logP: -3.0, pb: 4, extraction: "Zero direct loss", crrt: "High (Sc ≈ 0.9)", mandate: "High single loading dose 25–30 mg/kg to overcome expanded Vd. Mandatory 24h TDM before redosing." },
+      { name: "Colistin (CMS)", class: "Antimicrobial (Polymyxin)", logP: 1.2, pb: 50, extraction: "Moderate to High", crrt: "High CMS loss, low active loss", mandate: "Load 9.0 MIU (300 mg CBA). Maintenance 3.0–4.5 MIU q8–12h on CRRT. Both filter clearance & ECMO loss occur." },
+      { name: "Caspofungin", class: "Antifungal (Echinocandin)", logP: 2.1, pb: 96, extraction: "Moderate (Early 48h)", crrt: "Negligible (Sc < 0.05)", mandate: "Load 70 mg Day 1, continue 70 mg daily (do NOT decrease to 50 mg). High protein binding prevents CRRT loss." },
+      { name: "Anidulafungin", class: "Antifungal (Echinocandin)", logP: 2.4, pb: 99, extraction: "Moderate early loss", crrt: "Zero", mandate: "Load 200 mg Day 1, then 100 mg daily. Spontaneous chemical degradation; clearance independent of organs & CRRT." },
+      { name: "Micafungin", class: "Antifungal (Echinocandin)", logP: -0.1, pb: 99.5, extraction: "Low", crrt: "Zero", mandate: "100–150 mg daily. Negligible dialytic loss due to extreme protein binding; safe across all circuits." },
+      { name: "Voriconazole", class: "Antifungal (Triazole)", logP: 2.56, pb: 58, extraction: "Severe (>70% in 2h)", crrt: "Low", mandate: "AVOID on ECMO when feasible. Severe irreversible extraction into PMP fibers. If unavoidable, daily TDM mandatory." },
+      { name: "Posaconazole", class: "Antifungal (Triazole)", logP: 4.15, pb: 98, extraction: "High sequestration", crrt: "Zero", mandate: "Substantial circuit uptake. Therapeutic drug monitoring required; oral suspension erratic, use IV formulation with TDM." },
+      { name: "Daptomycin", class: "Antimicrobial (Lipopeptide)", logP: 1.0, pb: 92, extraction: "Moderate adsorption", crrt: "Low/Moderate (Sc ≈ 0.15)", mandate: "Prescribe high doses (10–12 mg/kg/day); standard 6–8 mg/kg doses fail due to circuit binding and hypoalbuminemia." },
+      { name: "Ceftriaxone", class: "Antimicrobial (Cephalosporin)", logP: -1.7, pb: 90, extraction: "Negligible", crrt: "Moderate (free fraction)", mandate: "2.0 g q12h (instead of 2.0 g q24h) due to severe hypoalbuminemia accelerating free fraction clearance." },
+      { name: "Cefepime", class: "Antimicrobial (Cephalosporin)", logP: -1.8, pb: 20, extraction: "Negligible", crrt: "Very High (Sc ≈ 0.95)", mandate: "Load 2.0 g; 2.0 g q8h extended (4h) or 4.0–6.0 g/24h continuous infusion. Beware neurotoxicity if CRRT interrupts." },
+      { name: "Linezolid", class: "Antimicrobial (Oxazolidinone)", logP: 0.55, pb: 31, extraction: "Low (<15%)", crrt: "Moderate (Sc ≈ 0.75)", mandate: "Standard 600 mg q12h often subtherapeutic on ECMO + CRRT; monitor levels or consider 600 mg q8h with platelet monitoring." },
+      { name: "Propofol", class: "Sedative / Hypnotic", logP: 3.8, pb: 98, extraction: "High initial circuit binding", crrt: "Zero", mandate: "Safe on modern PMP membranes! Titrate 1.0–3.0 mg/kg/h. Monitor triglycerides, CK, lactate for PRIS. Unloads LV on VA ECMO." },
+      { name: "Dexmedetomidine", class: "Sedative (Alpha-2 Agonist)", logP: 2.8, pb: 94, extraction: "High early extraction", crrt: "Negligible", mandate: "Infuse 0.2–1.4 mcg/kg/h. Overcomes early binding within 24h. Ideal for awake ECMO, delirium prevention, and sympathetic blunting." },
+      { name: "Midazolam", class: "Sedative (Benzodiazepine)", logP: 3.9, pb: 97, extraction: "Severe (70–80% loss)", crrt: "Zero", mandate: "Avoid long infusions. Massive early extraction leads to dose escalation, saturation, and prolonged post-decannulation coma." },
+      { name: "Fentanyl", class: "Analgesic (Lipophilic Opioid)", logP: 4.05, pb: 85, extraction: "Severe (>80% loss)", crrt: "Zero", mandate: "High early circuit sequestration. Rapidly induces tolerance and saturation sinks. Rotate to hydromorphone or remifentanil." },
+      { name: "Hydromorphone", class: "Analgesic (Opioid)", logP: 1.2, pb: 19, extraction: "Low / Negligible", crrt: "Moderate", mandate: "Opioid of choice on ECMO: hydrophilic, low protein binding, predictable pharmacokinetics without circuit sequestration." },
+      { name: "Remifentanil", class: "Analgesic (Esterase Opioid)", logP: 1.9, pb: 70, extraction: "Overridden by clearance", crrt: "Negligible", mandate: "0.1–0.5 mcg/kg/min. Rapid non-specific blood/tissue esterase hydrolysis completely overrides ECMO circuit extraction." },
+      { name: "Cisatracurium", class: "Neuromuscular Blocker", logP: 1.4, pb: 82, extraction: "Overridden by clearance", crrt: "Zero", mandate: "NMBA of choice on ECMO: Hofmann elimination and ester hydrolysis at 37°C/pH 7.40 are entirely immune to circuit loss." },
+      { name: "Rocuronium", class: "Neuromuscular Blocker", logP: 0.5, pb: 30, extraction: "Moderate / Variable", crrt: "Minimal", mandate: "Erratic duration on ECMO due to altered hepatic uptake and unpredictable Vd. Train-of-four monitoring mandatory." },
+      { name: "Unfractionated Heparin", class: "Anticoagulant (Indirect IIa/Xa)", logP: -3.5, pb: "High to PF4/alb", extraction: "Continuous circuit uptake", crrt: "Zero (MW 15 kDa)", mandate: "Target Anti-Xa (0.3–0.7 IU/mL), NOT aPTT or ACT. Watch for heparin resistance (AT-III deficiency) and HIT." },
+      { name: "Bivalirudin", class: "Anticoagulant (Direct Thrombin Inh)", logP: -2.1, pb: "Negligible", extraction: "Minimal", crrt: "Moderate (20% cleared)", mandate: "0.05–0.15 mg/kg/h. Thrombin cleavage is primary clearance! CRITICAL: Never allow circuit blood to stagnate (clots in 5 min)." },
+      { name: "Norepinephrine", class: "Vasoactive (Alpha/Beta Agonist)", logP: -1.2, pb: 25, extraction: "Negligible", crrt: "Moderate (short t1/2)", mandate: "Ultra-short half-life (1–2 min) with enzymatic degradation (COMT/MAO). Titrate directly to MAP/afterload targets." },
+      { name: "Levetiracetam", class: "Antiepileptic", logP: -0.6, pb: 10, extraction: "Negligible", crrt: "Extremely High (Sc ≈ 1.0)", mandate: "Small MW (170 Da), hydrophilic, low binding. Massively cleared across CRRT. Prescribe 1500–2000 mg load, then 1000–1500 mg q12h." }
+    ];
+
+    // CLINICAL SCENARIOS & VIVA BENCHMARKS
+    const stations = {
+      1: {
+        title: "Station 1: Severe Sepsis on VV ECMO – Hydrophilic vs. Lipophilic Antimicrobial PK/PD",
+        badge: "VV ECMO • Resuscitation • Sepsis PK/PD",
+        vignette: {
+          patient: "34-year-old male (75 kg) admitted with severe necrotizing community-acquired pneumonia (MRSA and Klebsiella pneumoniae suspected). Now on Day 3 of femoro-jugular VV ECMO in severe septic shock.",
+          vent: "PC-AC: Pinsp 14 cmH2O, PEEP 12 cmH2O, RR 10/min, FiO2 0.30, Delivered Vt 220 mL (3 mL/kg PBW).",
+          ecmo: { flow: "4.2 L/min", rpm: "3800", sweep: "5.0 L/min", fio2: "1.0", p1: "-35", p2: "195", p3: "181", dp: "14 mmHg", membrane: "PMP 1.8 m²" },
+          hemo: "HR 128 bpm (sinus tachycardia), MAP 55 mmHg. Norepinephrine at 0.45 mcg/kg/min, Vasopressin at 0.04 U/min. 72h Fluid Balance: +7.8 Liters.",
+          labs: "Cr 2.4 mg/dL (baseline 0.8), Urea 82 mg/dL, Albumin 2.1 g/dL, Lactate 4.2 mmol/L. Sputum: Heavy GNB and GPC clusters.",
+          currentMeds: "Piperacillin-Tazobactam 4.5 g IV q6h (30 min infusion), Vancomycin 1.0 g IV q12h."
+        },
+        calculatorType: "vd_calculator",
+        questions: [
+          {
+            id: "1.1",
+            title: "Question 1: Primary Pharmacokinetic Alterations in Sepsis on ECMO",
+            prompt: "What primary pharmacokinetic (PK) alterations are actively undermining antimicrobial efficacy in this patient? Distinguish between circuit-driven and patient/disease-driven factors.",
+            debrief: `
+              <div class="space-y-3 text-xs leading-relaxed text-slate-700">
+                <div class="p-3 bg-amber-50 border-l-4 border-amber-500 rounded-lg text-amber-950">
+                  <strong class="font-bold">Core Viva Axiom:</strong> Hydrophilic antimicrobials fail early due to a massive increase in volume of distribution ($V_d$), whereas lipophilic antimicrobials fail due to circuit sequestration and adsorption.
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                  <div class="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
+                    <h5 class="font-bold text-sky-900 border-b border-slate-100 pb-1 mb-1.5">Circuit-Driven Alterations</h5>
+                    <ul class="list-disc pl-4 space-y-1">
+                      <li><strong>Circuit Priming Dilution:</strong> 400–600 mL crystalloid prime immediately increases total blood volume by 10–15%.</li>
+                      <li><strong>Membrane Adsorption:</strong> Lipophilic drugs ($\log P > 2$) and highly protein-bound agents adhere to PVC tubing and PMP microporous fibers.</li>
+                      <li><strong>Oxygenator Saturation Kinetics:</strong> New circuits consume drugs rapidly for 24–48 hours until binding sites reach saturation.</li>
+                    </ul>
+                  </div>
+                  <div class="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
+                    <h5 class="font-bold text-sky-900 border-b border-slate-100 pb-1 mb-1.5">Disease & Patient Factors</h5>
+                    <ul class="list-disc pl-4 space-y-1">
+                      <li><strong>Capillary Leak & Edema (+7.8 L):</strong> Dilutes hydrophilic antimicrobials (beta-lactams, aminoglycosides, glycopeptides) into third spaces, cutting peak concentration ($C_{\max}$) in half.</li>
+                      <li><strong>Hypoalbuminemia ($2.1\\text{ g/dL}$):</strong> Expands the free (unbound) fraction ($f_u$), transiently accelerating distribution and clearance.</li>
+                      <li><strong>Sepsis-Induced AKI:</strong> Halts renal clearance, causing unpredictable clearance dissociation between early dilution and late accumulation.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            `
+          },
+          {
+            id: "1.2",
+            title: "Question 2: Hydrophilic vs. Lipophilic Comparative Matrix",
+            prompt: "Compare the expected ECMO circuit interactions of hydrophilic versus lipophilic antimicrobials. Cite specific examples from beta-lactams, glycopeptides, lipopeptides, and triazoles.",
+            debrief: `
+              <div class="overflow-x-auto text-xs mt-2">
+                <table class="min-w-full bg-white border border-slate-200 rounded-lg overflow-hidden">
+                  <thead class="bg-slate-900 text-white">
+                    <tr><th class="p-2.5 text-left font-semibold">Class</th><th class="p-2.5 text-left font-semibold">Physicochemicals</th><th class="p-2.5 text-left font-semibold">ECMO Interaction</th><th class="p-2.5 text-left font-semibold">Prescription Mandate</th></tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200">
+                    <tr><td class="p-2 font-bold text-slate-900">Beta-Lactams</td><td class="p-2">Hydrophilic ($\log P < 0$), low binding</td><td class="p-2">Zero membrane uptake; severe $V_d$ dilution</td><td class="p-2 text-sky-800 font-medium">High initial load; switch to prolonged (4h) or continuous infusion.</td></tr>
+                    <tr class="bg-slate-50"><td class="p-2 font-bold text-slate-900">Vancomycin</td><td class="p-2">Hydrophilic, moderate binding (~50%)</td><td class="p-2">Minimal loss; $V_d$ expanded by 50–100%</td><td class="p-2 text-sky-800 font-medium">Weight-based loading ($25\\text{–}30\\text{ mg/kg}$); target $\\text{AUC}_{24}/\\text{MIC} \\ge 400\\text{–}600$.</td></tr>
+                    <tr><td class="p-2 font-bold text-slate-900">Daptomycin</td><td class="p-2">Lipophilic, 92% protein bound</td><td class="p-2">Moderate adsorption to PVC tubing</td><td class="p-2 text-sky-800 font-medium">High dose: $10\\text{–}12\\text{ mg/kg/day}$ (avoid standard $6\\text{–}8\\text{ mg/kg}$).</td></tr>
+                    <tr class="bg-slate-50"><td class="p-2 font-bold text-slate-900">Voriconazole</td><td class="p-2">Lipophilic ($\log P = 2.56$), moderate binding</td><td class="p-2">Severe extraction ($>70\\%$ lost in 2h)</td><td class="p-2 text-rose-700 font-bold">Avoid on ECMO; substitute with Echinocandins or monitor daily troughs.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            `
+          },
+          {
+            id: "1.3",
+            title: "Question 3: Regimen Optimization & TDM Strategy",
+            prompt: "Critique and optimize this patient's current Piperacillin-Tazobactam and Vancomycin prescriptions. Provide specific dosing regimens, infusion strategies, and TDM targets.",
+            debrief: `
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mt-2">
+                <div class="p-3 bg-sky-50 border border-sky-200 rounded-xl">
+                  <h4 class="font-bold text-sky-900 border-b border-sky-200 pb-1 mb-2">Piperacillin-Tazobactam Redesign</h4>
+                  <p class="text-slate-600 mb-2"><strong>Current Flaw:</strong> 4.5 g q6h via standard 30 min bolus yields high peak but drops below MIC within 2 hours due to high $V_d$.</p>
+                  <ul class="list-disc pl-4 space-y-1 text-slate-800">
+                    <li><strong>Supplemental Load:</strong> 4.5 g over 30 min immediately.</li>
+                    <li><strong>Maintenance:</strong> Continuous infusion of <strong>13.5 g to 18 g/day</strong>, OR extended infusion <strong>4.5 g over 4 hours q8h</strong>.</li>
+                    <li><strong>Target:</strong> $100\\%\\ fT > 4\\times \\text{MIC}$ ($64\\text{ mg/L}$ for Pseudomonas/Klebsiella).</li>
+                  </ul>
+                </div>
+                <div class="p-3 bg-indigo-50 border border-indigo-200 rounded-xl">
+                  <h4 class="font-bold text-indigo-900 border-b border-indigo-200 pb-1 mb-2">Vancomycin Redesign</h4>
+                  <p class="text-slate-600 mb-2"><strong>Current Flaw:</strong> 1.0 g q12h delivers only $13.3\\text{ mg/kg}$, resulting in therapeutic delay and MRSA failure.</p>
+                  <ul class="list-disc pl-4 space-y-1 text-slate-800">
+                    <li><strong>Loading Dose:</strong> <strong>25–30 mg/kg actual body weight</strong> ($1875\\text{–}2250\\text{ mg}$ over 2 hours).</li>
+                    <li><strong>Maintenance:</strong> Continuous infusion $20\\text{–}25\\text{ mg/kg/day}$ titrated to steady-state level of $20\\text{–}25\\ \\mu\\text{g/mL}$.</li>
+                    <li><strong>Target:</strong> $\\text{AUC}_{24}/\\text{MIC} = 400\\text{–}600$.</li>
+                  </ul>
+                </div>
+              </div>
+            `
+          },
+          {
+            id: "1.4",
+            title: "Question 4: Oxygenator Changeout & 'Fresh Circuit Shock'",
+            prompt: "On Day 4, the oxygenator develops an acute structural defect and is emergently exchanged. What immediate pharmacokinetic phenomenon occurs, and what clinical actions must you take?",
+            debrief: `
+              <div class="p-3.5 bg-rose-50 border-l-4 border-rose-600 rounded-xl text-xs text-rose-950 space-y-2">
+                <div class="flex items-center space-x-1.5 font-bold text-rose-900">
+                  <span>🚨</span>
+                  <span>CRITICAL HAZARD: FRESH CIRCUIT ADSORPTION CRASH</span>
+                </div>
+                <p class="leading-relaxed">
+                  A brand-new PMP oxygenator and circuit contain unprimed, virgin lipophilic binding sites. The old circuit was saturated after 72 hours. Initiation of flow through the fresh circuit causes an immediate <strong>50–80% plummet in circulating plasma concentrations</strong> of lipophilic drugs within 60 to 120 minutes.
+                </p>
+                <div class="font-bold text-rose-900 pt-1">Immediate Actions Required:</div>
+                <ul class="list-disc pl-4 space-y-1 text-rose-900">
+                  <li><strong>Sedation Boluses:</strong> Immediately re-bolus lipophilic sedatives (propofol, fentanyl) to prevent violent agitation or cannula dislodgement.</li>
+                  <li><strong>Booster Antimicrobial Dosing:</strong> Administer supplemental booster doses for lipophilic/amphiphilic antimicrobials (e.g., Caspofungin 70 mg booster, Colistin 3 MIU booster).</li>
+                  <li><strong>Anticoagulation Re-Baseline:</strong> Fresh circuits lack albumin/heparin coating; check Anti-Xa at 2 hours and expect increased heparin demands.</li>
+                </ul>
+              </div>
+            `
+          }
+        ]
+      },
+      2: {
+        title: "Station 2: Sedation & Analgesia on VA ECMO – Debunking Myths & Navigating PK Alterations",
+        badge: "VA ECMO • Cardiogenic Shock • Propofol / Sedation",
+        vignette: {
+          patient: "48-year-old female (70 kg) on peripheral VA ECMO (right femoral vein 21 Fr -> left femoral artery 17 Fr) for acute fulminant myocarditis (Day 2). PMP oxygenator (1.8 m²), blood flow 3.8 L/min.",
+          vent: "Rest settings: PC-AC, Pinsp 10, PEEP 10, RR 8/min, FiO2 0.30.",
+          ecmo: { flow: "3.8 L/min", rpm: "3400", sweep: "2.5 L/min", fio2: "1.0", p1: "-40", p2: "185", p3: "168", dp: "17 mmHg", membrane: "PMP 1.8 m²" },
+          hemo: "BP 165/95 mmHg (MAP 118 mmHg), HR 124 bpm. Arterial pulse pressure is only 10 mmHg (severe LV afterload mismatch, risk of pulmonary edema).",
+          labs: "Patient violently thrashing, coughing, fighting ventilator, endangering femoral arterial cannula (RASS +3).",
+          currentMeds: "Fentanyl 250 mcg/h (3.5 mcg/kg/h), Midazolam 15 mg/h (0.21 mg/kg/h). Wide awake, lacrimating.",
+          dispute: "Fellow wants to start Propofol to sedate and reduce afterload. Perfusionist objects: 'Propofol ruins the membrane lung and causes oxygenator failure due to lipid deposition.'"
+        },
+        calculatorType: "propofol_safety",
+        questions: [
+          {
+            id: "2.1",
+            title: "Question 1: Propofol Safety & ELSO Consensus",
+            prompt: "Address the perfusionist's objection directly. What is the evidence and current ELSO consensus regarding the safety of Propofol in patients supported on modern ECMO circuits? Contrast older polypropylene membranes with modern PMP fibers.",
+            debrief: `
+              <div class="space-y-2 text-xs text-slate-700 leading-relaxed">
+                <div class="p-2.5 bg-emerald-50 border-l-4 border-emerald-600 rounded-lg text-emerald-950 font-medium">
+                  <strong>ELSO Consensus:</strong> Propofol is safe, effective, and endorsed as a first-line agent on modern ECMO circuits.
+                </div>
+                <ul class="list-disc pl-4 space-y-1">
+                  <li><strong>The Historic Polypropylene Myth:</strong> In the 1980s–1990s, microporous polypropylene membranes suffered from plasma leakage ("wetting out") accelerated by lipid solvent effects. Furthermore, three-way stopcocks made of polycarbonate cracked when exposed to lipid emulsions.</li>
+                  <li><strong>Modern Polymethylpentene (PMP) Diffusion Membranes:</strong> Contemporary PMP fibers are true asymmetric solid diffusion membranes with an ultra-thin outer skin. Propofol lipid emulsions do NOT penetrate or dissolve PMP fibers. Numerous ELSO clinical registries confirm no increase in circuit failure or premature membrane changeouts with standard propofol infusions.</li>
+                  <li><strong>Clinical Benefit:</strong> Short context-sensitive half-life allows rapid neurological wake-up tests and physical therapy ("awake ECMO").</li>
+                </ul>
+              </div>
+            `
+          },
+          {
+            id: "2.2",
+            title: "Question 2: Tolerance Mechanisms & Fentanyl/Midazolam Sink",
+            prompt: "Explain the pharmacokinetic mechanisms driving tolerance and failure of the current Fentanyl and Midazolam infusions. Why does continuing to escalate these infusions worsen long-term clinical outcomes?",
+            debrief: `
+              <div class="space-y-2 text-xs text-slate-700">
+                <p><strong>1. Extreme Lipophilicity & Circuit Extraction:</strong> Fentanyl ($\log P = 4.05$) and Midazolam ($\log P = 3.90$) experience <strong>70% to 85% circuit extraction</strong> within the first 24 hours of exposure to PVC tubing and oxygenator surfaces.</p>
+                <p><strong>2. The Biphasic Saturation Reservoir:</strong> Blindly escalating infusion rates to overcome early circuit extraction fills tissue reservoirs. Once circuit binding sites saturate at 48–72 hours, systemic clearance plummets and the circuit acts as a slow-release drug depot, causing persistent unconsciousness days after decannulation.</p>
+                <p><strong>3. Toxic Metabolite Accumulation:</strong> Midazolam's active metabolite, 1-hydroxymidazolam glucuronide, accumulates in critical illness, predisposing to profound ICU delirium and prolonged mechanical ventilation.</p>
+              </div>
+            `
+          },
+          {
+            id: "2.3",
+            title: "Question 3: Comprehensive Multimodal Analgosedation Plan",
+            prompt: "Formulate a comprehensive, multimodal analgosedation strategy to safely regain behavioral control, protect the cannulae, and optimize LV afterload in this VA ECMO patient.",
+            debrief: `
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs mt-1">
+                <div class="p-2.5 bg-white border border-slate-200 rounded-lg shadow-sm">
+                  <strong class="text-sky-900 block font-bold mb-1">1. Initiate Propofol (1.0–2.5 mg/kg/h)</strong>
+                  Induces rapid GABAergic sedation, blunts sympathetic discharge, and provides systemic arterial vasodilation. On peripheral VA ECMO, reducing high systemic vascular resistance lowers LV end-systolic wall stress, promotes aortic valve opening, and prevents lethal pulmonary edema.
+                </div>
+                <div class="p-2.5 bg-white border border-slate-200 rounded-lg shadow-sm">
+                  <strong class="text-sky-900 block font-bold mb-1">2. Opioid Rotation to Hydromorphone or Remifentanil</strong>
+                  Discontinue fentanyl and midazolam. Hydromorphone ($\log P = 1.2$, protein binding $<20\%$) has minimal circuit loss. Alternatively, remifentanil undergoes non-specific organ-independent tissue esterase clearance that completely overrides circuit sequestration.
+                </div>
+                <div class="p-2.5 bg-white border border-slate-200 rounded-lg shadow-sm">
+                  <strong class="text-sky-900 block font-bold mb-1">3. Add Dexmedetomidine (0.2–1.4 mcg/kg/h)</strong>
+                  Centrally acting $\alpha_2$-agonist provides anxiolysis, opioid-sparing analgesia, and sympathetic blunting without respiratory depression, facilitating calm wakefulness.
+                </div>
+                <div class="p-2.5 bg-white border border-slate-200 rounded-lg shadow-sm">
+                  <strong class="text-sky-900 block font-bold mb-1">4. Volatile Anesthetics via Sweep Gas (If Refractory)</strong>
+                  Isoflurane or Sevoflurane administered directly into the oxygenator sweep gas line using an AnaConDa / Sedaconda device provides rapid, easily titratable sedation with zero circuit adsorption.
+                </div>
+              </div>
+            `
+          },
+          {
+            id: "2.4",
+            title: "Question 4: Paralytic Selection on ECMO",
+            prompt: "If paralysis is deemed necessary for refractory cannula-threatening thrashing, which neuromuscular blocking agent (NMBA) is preferred on ECMO, and what is the pharmacological rationale?",
+            debrief: `
+              <div class="p-3 bg-teal-50 border-l-4 border-teal-600 rounded-lg text-xs text-teal-950">
+                <strong class="font-bold text-teal-900">Agent of Choice: CISATRACURIUM</strong>
+                <p class="mt-1 leading-relaxed">
+                  <strong>Rationale:</strong> Cleared by organ-independent <strong>Hofmann elimination</strong> and non-specific ester hydrolysis at physiological body temperature and pH. Clearance is entirely unaffected by ECMO circuit adsorption, hepatic congestion, or renal failure.
+                </p>
+                <p class="mt-1 text-slate-600">
+                  <em>Why avoid Rocuronium/Vecuronium?</em> Steroidal NMBAs rely on hepatic and renal clearance. On ECMO, fluid overload and altered volume of distribution cause unpredictable duration of action and prolonged paralysis.
+                </p>
+              </div>
+            `
+          },
+          {
+            id: "2.5",
+            title: "Question 5: Critical Propofol Monitoring Hazards on VA ECMO",
+            prompt: "Identify two critical clinical monitoring hazards specific to propofol utilization in this VA ECMO patient (including infusion port safety and metabolic monitoring).",
+            debrief: `
+              <div class="space-y-1.5 text-xs text-slate-700">
+                <p><strong>1. The Masked Propofol Infusion Syndrome (PRIS):</strong> On VA ECMO, oxygenator sweep gas clearance of $\\text{CO}_2$ can conceal developing metabolic lactic acidosis. Facilitators must monitor daily serum triglycerides, creatine kinase (CK), base deficit, and maintain propofol strictly $<4.0\\text{–}5.0\\text{ mg/kg/h}$.</p>
+                <p><strong>2. Absolute Prohibition of Pre-Oxygenator Infusions:</strong> Never infuse propofol into ECMO circuit access ports or pre-membrane access lines. Undiluted lipid emulsions entering the oxygenator manifold disrupt fluid mechanics and cause local fiber wetting. Always infuse via a dedicated central venous lumen.</p>
+              </div>
+            `
+          }
+        ]
+      },
+      3: {
+        title: "Station 3: Anticoagulation Discordance & 'Heparin Resistance'",
+        badge: "VA ECMO • Anticoagulation • 4T Score & Bivalirudin",
+        vignette: {
+          patient: "55-year-old male on peripheral VA ECMO following emergent CABG and failure to separate from CPB (Day 4 of support).",
+          vent: "PC-AC: Pinsp 12, PEEP 10, RR 10, FiO2 0.35.",
+          ecmo: { flow: "3.8 L/min", rpm: "3400", sweep: "3.0 L/min", fio2: "1.0", p1: "-30", p2: "240", p3: "175", dp: "65 mmHg (Acute Rise!)", membrane: "PMP 1.8 m²" },
+          hemo: "Stable hemodynamics on low-dose norepinephrine. Inspection reveals dark fibrin stranding and microthrombi in pre-oxygenator manifold.",
+          labs: "aPTT 42 s (Target 60-80), Anti-Xa 0.16 IU/mL (Target 0.3-0.7), ACT 155 s (Target 180-220). Platelets dropped from 185 to 72 x 10^9/L (>60% drop). Fibrinogen 520 mg/dL.",
+          currentMeds: "Unfractionated Heparin (UFH) infusion escalated to 38 U/kg/h (2850 U/h). Guideline ceiling is 25 U/kg/h."
+        },
+        calculatorType: "hit_calculator",
+        questions: [
+          {
+            id: "3.1",
+            title: "Question 1: Heparin Resistance Pathophysiology",
+            prompt: "Define 'Heparin Resistance' in this clinical scenario. What physiological and circuit-related mechanisms are driving the failure of heparin response?",
+            debrief: `
+              <div class="space-y-2 text-xs text-slate-700">
+                <p><strong>Clinical Definition:</strong> Escalation of UFH dose $>35,000\\text{ U/day}$ or $>30\\text{–}35\\text{ U/kg/h}$ without achieving therapeutic anticoagulation targets.</p>
+                <ul class="list-disc pl-4 space-y-1">
+                  <li><strong>Acquired Antithrombin III (AT-III) Deficiency:</strong> Heparin does not inhibit coagulation directly; it acts by accelerating AT-III binding to thrombin (Factor IIa) and Factor Xa by 1,000-fold. Post-cardiotomy CPB consumption, hemodilution, and continuous circuit consumption deplete AT-III levels below critical thresholds ($<50\\%$).</li>
+                  <li><strong>Acute-Phase Reactant Neutralization:</strong> Systemic post-op inflammation elevates Fibrinogen ($520\\text{ mg/dL}$) and Factor VIII, which directly shorten the aPTT and non-specifically bind heparin.</li>
+                  <li><strong>Platelet Factor 4 (PF4) Release:</strong> Centrifugal shear stress activates platelets, releasing cationic PF4 that avidly binds and neutralizes anionic heparin chains.</li>
+                </ul>
+              </div>
+            `
+          },
+          {
+            id: "3.2",
+            title: "Question 2: Coagulation Assay Discordance (ACT vs. aPTT vs. Anti-Xa)",
+            prompt: "Analyze the discordance commonly observed between aPTT, Anti-Factor Xa, and ACT in ECMO patients. Which assay is most reliable, and why does aPTT often read falsely low?",
+            debrief: `
+              <div class="overflow-x-auto text-xs mt-1">
+                <table class="min-w-full bg-white border border-slate-200 rounded-lg overflow-hidden">
+                  <thead class="bg-slate-900 text-white">
+                    <tr><th class="p-2 text-left">Assay</th><th class="p-2 text-left">Target Range</th><th class="p-2 text-left">Major ECMO Confounders</th><th class="p-2 text-left">Reliability</th></tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200">
+                    <tr><td class="p-2 font-bold">ACT</td><td class="p-2">180–220 s</td><td class="p-2">Confounded by platelet count, hypothermia, hemodilution, lupus anticoagulants</td><td class="p-2 text-rose-600 font-semibold">Poor (Not recommended for routine ICU titration)</td></tr>
+                    <tr class="bg-slate-50"><td class="p-2 font-bold">aPTT</td><td class="p-2">60–80 s</td><td class="p-2">Falsely shortened by elevated Factor VIII & Fibrinogen (causes lethal heparin overdosing!)</td><td class="p-2 text-amber-600 font-semibold">Moderate (Prone to acute-phase bias)</td></tr>
+                    <tr><td class="p-2 font-bold">Anti-Xa</td><td class="p-2">0.3–0.7 IU/mL</td><td class="p-2">Independent of acute phase reactants and platelets</td><td class="p-2 text-emerald-600 font-bold">Gold Standard (ELSO Recommended)</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            `
+          },
+          {
+            id: "3.3",
+            title: "Question 3: Diagnostic Workup & Therapeutic Algorithm",
+            prompt: "Outline your immediate diagnostic workup and therapeutic algorithm. Calculate the 4T score for HIT. Under what circumstances would you administer Antithrombin III concentrate versus switching to a Direct Thrombin Inhibitor?",
+            debrief: `
+              <div class="space-y-2 text-xs text-slate-700">
+                <div class="p-2.5 bg-slate-100 rounded-lg border border-slate-300">
+                  <strong>4T Score Breakdown:</strong>
+                  <ul class="list-disc pl-4 space-y-0.5 mt-1 text-[11px]">
+                    <li><strong>Thrombocytopenia:</strong> Platelets dropped $61\\%$ from 185 to 72 = <strong>2 points</strong></li>
+                    <li><strong>Timing:</strong> Day 4 post-op with prior heparin during CPB = <strong>2 points</strong></li>
+                    <li><strong>Thrombosis:</strong> Oxygenator $\\Delta P$ surge ($65\\text{ mmHg}$) + visible manifold thrombi = <strong>2 points</strong></li>
+                    <li><strong>oTher Causes:</strong> Post-op CPB / ECMO consumption possible = <strong>1 point</strong></li>
+                    <li><strong>Total 4T Score = 7 / 8 (High Probability of HIT)</strong></li>
+                  </ul>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                  <div class="p-2.5 bg-blue-50 border border-blue-200 rounded-lg">
+                    <strong class="text-blue-900 block font-bold mb-1">AT-III Concentrate Pathway</strong>
+                    Indicated if AT-III activity is $<50\\%$ AND HIT testing is negative. Dose: $[100 - \\text{Baseline}\\%] \\times \\text{weight (kg)} \\times 0.8$. Target activity $80\\text{–}100\\%$.
+                  </div>
+                  <div class="p-2.5 bg-purple-50 border border-purple-200 rounded-lg">
+                    <strong class="text-purple-900 block font-bold mb-1">Switch to DTI (Bivalirudin) Pathway</strong>
+                    <strong>MANDATORY HERE:</strong> High 4T score + acute oxygenator thrombosis mandates stopping all heparin immediately. Initiate Bivalirudin at $0.05\\text{–}0.15\\text{ mg/kg/h}$, titrated to aPTT 60–80s.
+                  </div>
+                </div>
+              </div>
+            `
+          },
+          {
+            id: "3.4",
+            title: "Question 4: The Bivalirudin Stagnation Clotting Hazard",
+            prompt: "If you transition the patient to Bivalirudin, what unique pharmacokinetic vulnerability must the entire ECMO team be warned about during low-flow or pump-stop situations?",
+            debrief: `
+              <div class="p-3.5 bg-rose-50 border-l-4 border-rose-600 rounded-xl text-xs text-rose-950 space-y-1.5">
+                <div class="font-bold text-rose-900 flex items-center space-x-1.5">
+                  <span>⚠️</span>
+                  <span>CRITICAL SAFETY DISASTER: BIVALIRUDIN STAGNATION THROMBOSIS</span>
+                </div>
+                <p class="leading-relaxed">
+                  <strong>The Mechanism:</strong> 80% of bivalirudin clearance occurs via <strong>direct catalytic cleavage by circulating thrombin</strong> at the Gly-Pro bond.
+                </p>
+                <p class="leading-relaxed">
+                  <strong>The Bedside Hazard:</strong> In stagnant zones (clamped bridge lines, stopped centrifugal pumps, cannulae during recannulation or oxygenator exchange), local thrombin enzymatic cleavage completely destroys all local bivalirudin. Within <strong>5 to 10 minutes</strong>, local drug levels drop to zero, precipitating <strong>instantaneous, solid clot formation</strong> that clogs the circuit.
+                </p>
+                <div class="font-bold text-rose-900 pt-1">Cardinal Rule:</div>
+                <p class="text-rose-900 font-semibold">Never leave blood static in any tubing or manifold when using bivalirudin. Any clamped line must be immediately flushed clear with saline or continuous heparinized crystalloid.</p>
+              </div>
+            `
+          }
+        ]
+      },
+      4: {
+        title: "Station 4: The Dual Circuit Conundrum – VV ECMO with In-Line CRRT",
+        badge: "VV ECMO + CRRT • Splicing Physics • Dialytic Clearance",
+        vignette: {
+          patient: "42-year-old male (80 kg) with severe pulmonary leptospirosis, catastrophic ARDS, and anuric acute tubular necrosis on Day 5 of VV ECMO (blood flow 4.0 L/min).",
+          vent: "PC-AC: Pinsp 14, PEEP 14, RR 10/min, FiO2 0.35, Vt 240 mL.",
+          ecmo: { flow: "4.0 L/min", rpm: "3700", sweep: "4.5 L/min", fio2: "1.0", p1: "-50", p2: "210", p3: "192", dp: "18 mmHg", membrane: "PMP 1.8 m²" },
+          crrt: "CVVHDF in-line: Access connected to Post-pump/Pre-oxygenator (P2, +210 mmHg); Return connected to Pre-pump negative line (P1, -50 mmHg). Blood flow 200 mL/min, Effluent dose 35 mL/kg/h (2800 mL/h; Dialysate 1400, Replacement 1400 mL/h). UF 150 mL/h.",
+          labs: "Anuric ATN, Cr 4.8 mg/dL, K+ 5.2 mmol/L, Lactate 2.8 mmol/L.",
+          currentMeds: "1. Meropenem 1.0 g IV q12h (renal dose) | 2. Colistin (CMS) 3.0 MIU IV q12h | 3. Caspofungin 50 mg IV q24h | 4. Levetiracetam 500 mg IV q12h."
+        },
+        calculatorType: "crrt_calculator",
+        questions: [
+          {
+            id: "4.1",
+            title: "Question 1: Mechanical & Safety Analysis of Circuit Integration",
+            prompt: "Analyze the mechanical circuit connection configuration. What specific pressure alarms, safety hazards (including air embolism risk), and pharmacological first-pass effects occur with this setup?",
+            debrief: `
+              <div class="space-y-2 text-xs text-slate-700 leading-relaxed">
+                <p><strong>1. Access Line Hazard (Post-Pump $P_2 = +210\\text{ mmHg}$):</strong> Splicing into the post-pump line subjects the CRRT machine's access inlet to extreme positive pressure. Most CRRT machines expect negative inlet pressures ($-50\\text{ to }-150\\text{ mmHg}$ from a dialysis catheter). This triggers intractable "Access Pressure Extremely High" alarms and halts therapy.</p>
+                <p><strong>2. Return Line Catastrophe (Pre-Pump $P_1 = -50\\text{ mmHg}$):</strong> Returning blood into the negative suction line creates negative pressure along the return tubing. Any loose luer-lock, cracked connection, or transducer port will <strong>suck room air into the ECMO circuit</strong>, causing massive air embolism, pump de-priming, and catastrophic circulatory arrest.</p>
+                <p><strong>3. First-Pass Elimination Trap:</strong> Meds infused via central venous lines are drained directly into the ECMO circuit and sucked straight into the CRRT filter before ever perfusing patient tissues.</p>
+                <div class="p-2 bg-emerald-50 border-l-4 border-emerald-600 rounded text-emerald-900 font-medium">
+                  <strong>Recommended Configuration:</strong> Both CRRT Access AND CRRT Return should be connected to post-pump/post-oxygenator ports using specialized high-pressure adapters, OR utilize an independent dedicated double-lumen hemodialysis catheter.
+                </div>
+              </div>
+            `
+          },
+          {
+            id: "4.2",
+            title: "Question 2: Total Clearance Mathematical Framework",
+            prompt: "Construct the mathematical framework governing total drug clearance (CLtotal) when ECMO and CRRT operate in series. What drug properties dictate clearance across the hemofilter?",
+            debrief: `
+              <div class="p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs space-y-2 font-mono text-slate-800">
+                <div class="font-bold text-sky-900 font-sans text-sm">Clearance Mass-Balance Equation:</div>
+                <div class="text-sky-700 font-bold">CL_{\\text{total}} = CL_{\\text{patient}} + CL_{\\text{ECMO}} + CL_{\\text{CRRT}}</div>
+                <div class="font-sans text-slate-700 space-y-1">
+                  <p>• <strong>$CL_{\\text{patient}} \\approx 0$</strong> for renally cleared drugs in anuric acute tubular necrosis.</p>
+                  <p>• <strong>$CL_{\\text{ECMO}}$</strong> represents circuit sequestration (prominent during first 48 hours for lipophilic drugs, negligible at steady-state for hydrophilic agents).</p>
+                  <p>• <strong>$CL_{\\text{CRRT}}$</strong> in CVVHDF:
+                    <br><span class="font-mono text-sky-800 font-semibold">$CL_{\\text{CRRT}} = (S_c \\times Q_{\\text{UF}}) + (S_d \\times Q_{\\text{dialysate}})$</span>
+                  </p>
+                  <p>• <strong>Sieving Coefficient ($S_c$):</strong> Governed by protein binding and molecular weight. $S_c \\approx f_u = 1 - \\text{Fraction Protein Bound}$. Drugs with MW $<1,000\\text{ Da}$ and low protein binding ($<20\\%$) have $S_c \\approx 1.0$, resulting in intense dialytic removal.</p>
+                </div>
+              </div>
+            `
+          },
+          {
+            id: "4.3",
+            title: "Question 3: Prescription Audit & Structured Redesign",
+            prompt: "Perform a structured pharmacological audit and redesign of the four medication prescriptions (Meropenem, Colistin, Caspofungin, Levetiracetam). Detail specific loading doses, maintenance doses, infusion intervals, and target exposures.",
+            debrief: `
+              <div class="overflow-x-auto text-xs mt-1">
+                <table class="min-w-full bg-white border border-slate-200 rounded-lg overflow-hidden">
+                  <thead class="bg-slate-900 text-white">
+                    <tr><th class="p-2 text-left">Drug</th><th class="p-2 text-left">Current Order</th><th class="p-2 text-left">PK Pitfall on Dual Circuit</th><th class="p-2 text-left">EDIC Model Prescription</th></tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200">
+                    <tr><td class="p-2 font-bold text-slate-900">Meropenem</td><td class="p-2">1.0 g q12h</td><td class="p-2">Protein binding 2%, $S_c = 1.0$. Cleared at $35\\text{ mL/kg/h}$. Severe underdosing leads to therapeutic failure.</td><td class="p-2 text-sky-900 font-semibold"><strong>Load 2.0 g</strong>, then <strong>1.0 g q8h extended (4h)</strong> OR <strong>3.0 g/24h continuous infusion</strong>.</td></tr>
+                    <tr class="bg-slate-50"><td class="p-2 font-bold text-slate-900">Colistin</td><td class="p-2">3.0 MIU q12h</td><td class="p-2">Prodrug CMS is cleared rapidly by CRRT; active colistin binds circuit tubing. Standard dose breeds resistance.</td><td class="p-2 text-sky-900 font-semibold"><strong>Load 9.0 MIU</strong> over 1h, then <strong>3.0–4.5 MIU q8–12h</strong> with close monitoring.</td></tr>
+                    <tr><td class="p-2 font-bold text-slate-900">Caspofungin</td><td class="p-2">50 mg q24h</td><td class="p-2">High protein binding ($96\\%$) prevents CRRT loss, but early ECMO absorption demands higher dosing.</td><td class="p-2 text-sky-900 font-semibold"><strong>Maintain 70 mg daily</strong> (do not reduce to standard 50 mg).</td></tr>
+                    <tr class="bg-slate-50"><td class="p-2 font-bold text-slate-900">Levetiracetam</td><td class="p-2">500 mg q12h</td><td class="p-2">Low binding ($<10\\%$), MW 170 Da ($S_c = 1.0$). Filter strips drug; patient risks refractory status epilepticus.</td><td class="p-2 text-sky-900 font-semibold"><strong>Load 1500–2000 mg</strong>, then <strong>1000–1500 mg q12h</strong> (treat as normal GFR).</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            `
+          },
+          {
+            id: "4.4",
+            title: "Question 4: Intermittent CRRT Downtime & Kinetic Instability",
+            prompt: "The CRRT circuit clots repeatedly every 6 to 8 hours. How does this intermittent therapy interruption impact steady-state antimicrobial concentrations, and what dosing rule should be applied?",
+            debrief: `
+              <div class="space-y-1.5 text-xs text-slate-700 leading-relaxed">
+                <p><strong>The "On-Off" Clearance Rollercoaster:</strong> When CRRT runs at $35\\text{ mL/kg/h}$, total clearance mimics a healthy young adult ($80\\text{ mL/min}$). When clotted or undergoing line changes, clearance abruptly plunges to zero (anuric ATN). Dosing continuously for CRRT during prolonged downtime leads to toxic accumulation; conversely, underdosing during run-time causes bacterial regrowth.</p>
+                <div class="p-2.5 bg-amber-50 border-l-4 border-amber-500 rounded-lg text-amber-950 font-medium">
+                  <strong>Clinical Action Rule:</strong> If CRRT is down for $>4\\text{ hours}$, hold planned doses or convert to anuric renally adjusted schedules. When CRRT is restarted with a fresh hemofilter, administer an immediate 50% booster dose to quickly re-establish therapeutic steady-state levels.
+                </div>
+              </div>
+            `
+          }
+        ]
+      },
+      5: {
+        title: "Master ECMO Pharmacology Matrix (24 Essential ICU Drugs)",
+        isCompendium: true
+      }
+    };
+
+    // APPLICATION STATE
+    let currentStation = 1;
+    let isFacilitatorMode = true;
+    let timerSeconds = 15 * 60;
+    let timerInterval = null;
+    let timerRunning = false;
+    let compendiumFilter = "ALL";
+    let compendiumSearch = "";
+
+    // RUBRIC SCORING STATE
+    let domainScores = { 1: 0, 2: 0, 3: 0, 4: 0 };
+
+    // RENDER FUNCTIONS
+    function renderStation() {
+      const data = stations[currentStation];
+      const container = document.getElementById("stationContent");
+
+      if (data.isCompendium) {
+        container.innerHTML = renderCompendiumView();
+        initCompendiumListeners();
+        triggerMathRender();
+        return;
+      }
+
+      let html = `
+        <div class="space-y-5 animate-in fade-in duration-200">
+          
+          <!-- CLINICAL SCENARIO HEADER & TELEMETRY DASHBOARD -->
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex flex-wrap justify-between items-start gap-3">
+              <div>
+                <span class="text-[11px] font-bold text-sky-600 tracking-wider uppercase">${data.badge}</span>
+                <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 mt-0.5">${data.title}</h2>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="px-2.5 py-1 bg-slate-100 border border-slate-300 rounded-full text-[11px] font-semibold text-slate-700">
+                  ⏱️ 15 Min Viva
+                </span>
+                <span class="px-2.5 py-1 bg-sky-100 border border-sky-300 rounded-full text-[11px] font-semibold text-sky-800">
+                  ${data.questions.length} Viva Prompts
+                </span>
+              </div>
+            </div>
+
+            <!-- VIGNETTE TEXT -->
+            <div class="mt-3 text-xs sm:text-sm text-slate-700 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+              <strong class="text-slate-900 font-bold">Clinical Vignette:</strong> ${data.vignette.patient}
+            </div>
+
+            <!-- HARDWARE TELEMETRY CONSOLE -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 mt-3.5">
+              <div class="bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 shadow">
+                <span class="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Pump Flow</span>
+                <span class="text-lg font-bold text-emerald-400 mono tabular-nums">${data.vignette.ecmo.flow}</span>
+                <span class="text-[10px] text-slate-400 block">${data.vignette.ecmo.rpm} RPM</span>
+              </div>
+              
+              <div class="bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 shadow">
+                <span class="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Membrane ΔP</span>
+                <span class="text-lg font-bold ${parseInt(data.vignette.ecmo.dp) > 35 ? 'text-rose-400 mono pulse-alarm' : 'text-sky-400 mono'} tabular-nums">${data.vignette.ecmo.dp}</span>
+                <span class="text-[10px] text-slate-400 block">P2: ${data.vignette.ecmo.p2} | P3: ${data.vignette.ecmo.p3}</span>
+              </div>
+
+              <div class="bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 shadow">
+                <span class="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Sweep Gas</span>
+                <span class="text-lg font-bold text-sky-300 mono tabular-nums">${data.vignette.ecmo.sweep}</span>
+                <span class="text-[10px] text-slate-400 block">FiO2: ${data.vignette.ecmo.fio2}</span>
+              </div>
+
+              <div class="bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 shadow">
+                <span class="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Pre-Pump P1</span>
+                <span class="text-lg font-bold text-amber-400 mono tabular-nums">${data.vignette.ecmo.p1}</span>
+                <span class="text-[10px] text-slate-400 block">mmHg (Inlet)</span>
+              </div>
+
+              <div class="bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 shadow col-span-2">
+                <span class="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Oxygenator Spec</span>
+                <span class="text-xs font-semibold text-slate-200 block truncate mt-0.5">${data.vignette.ecmo.membrane}</span>
+                <span class="text-[10px] text-emerald-400 font-medium">Polymethylpentene (PMP Solid Diffusion)</span>
+              </div>
+            </div>
+
+            <!-- BEDSIDE TELEMETRY STRIP -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 mt-3 text-xs">
+              <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <strong class="text-slate-800 font-semibold block mb-0.5">Ventilator Settings:</strong>
+                <span class="text-slate-600">${data.vignette.vent}</span>
+              </div>
+              <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <strong class="text-slate-800 font-semibold block mb-0.5">Hemodynamics & Fluids:</strong>
+                <span class="text-slate-600">${data.vignette.hemo}</span>
+              </div>
+              <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <strong class="text-slate-800 font-semibold block mb-0.5">Current Medication Orders:</strong>
+                <span class="text-slate-900 font-medium">${data.vignette.currentMeds}</span>
+              </div>
+            </div>
+
+            ${data.vignette.crrt ? `
+              <div class="mt-2.5 p-2.5 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-900">
+                <strong class="font-bold">CRRT Operating Parameters:</strong> ${data.vignette.crrt}
+              </div>
+            ` : ''}
+
+            ${data.vignette.dispute ? `
+              <div class="mt-2.5 p-2.5 bg-amber-50 border-l-4 border-amber-500 rounded-xl text-xs text-amber-900">
+                <strong class="font-bold">Bedside Conflict:</strong> ${data.vignette.dispute}
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- INTERACTIVE STATION MICRO-CALCULATOR / SIMULATOR WIDGET -->
+          ${renderInteractiveCalculator(data.calculatorType)}
+
+          <!-- STRUCTURED VIVA QUESTIONS & FACILITATOR DEBRIEFS -->
+          <div class="space-y-3.5">
+            <div class="flex justify-between items-center px-1">
+              <h3 class="font-bold text-sm sm:text-base text-slate-900 flex items-center space-x-2">
+                <span>Structured Viva Prompts</span>
+                <span class="text-xs bg-slate-200 text-slate-800 font-semibold px-2 py-0.5 rounded-full">${data.questions.length} Items</span>
+              </h3>
+              <div class="flex items-center space-x-2 text-xs">
+                <span class="text-slate-500 hidden sm:inline">Examiner view:</span>
+                <button onclick="toggleAllDebriefs()" class="text-sky-600 hover:text-sky-700 font-semibold underline">
+                  Toggle All Answers
+                </button>
+              </div>
+            </div>
+
+            ${data.questions.map((q, idx) => `
+              <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all">
+                <div class="p-4 sm:p-5">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-start space-x-3">
+                      <span class="w-6 h-6 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center flex-shrink-0 mt-0.5 shadow">
+                        ${idx + 1}
+                      </span>
+                      <div>
+                        <h4 class="font-bold text-sm text-slate-900">${q.title}</h4>
+                        <p class="text-xs sm:text-sm text-slate-800 mt-1 font-medium leading-relaxed">${q.prompt}</p>
+                      </div>
+                    </div>
+                    <button onclick="toggleDebrief('${q.id}')" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 flex-shrink-0 flex items-center space-x-1.5 transition active:scale-95">
+                      <span id="btnIcon-${q.id}">${isFacilitatorMode ? '🙈' : '🔍'}</span>
+                      <span id="btnText-${q.id}">${isFacilitatorMode ? 'Hide Key' : 'Reveal Debrief'}</span>
+                    </button>
+                  </div>
+
+                  <!-- DEBRIEF CONTAINER -->
+                  <div id="debrief-${q.id}" class="${isFacilitatorMode ? '' : 'hidden'} mt-3.5 pt-3.5 border-t border-slate-100">
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                      <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-200">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
+                          <span>📋</span>
+                          <span>Faculty Benchmark & Model Answer</span>
+                        </span>
+                        <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded border border-emerald-200">EDIC 2 Pass Standard</span>
+                      </div>
+                      ${q.debrief}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      container.innerHTML = html;
+      triggerMathRender();
+    }
+
+    // INTERACTIVE CALCULATOR BUILDER
+    function renderInteractiveCalculator(type) {
+      if (type === "vd_calculator") {
+        return `
+          <div class="bg-gradient-to-r from-sky-900 to-slate-900 text-white p-4 rounded-2xl shadow-md border border-sky-800">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-sky-300 flex items-center space-x-1.5">
+                <span>🧮</span>
+                <span>Interactive PK Estimator: Hydrophilic Loading Dose on ECMO</span>
+              </span>
+              <span class="text-[10px] bg-sky-500/30 text-sky-200 px-2 py-0.5 rounded">Expanded Vd Compensation</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs mt-2">
+              <div>
+                <label class="block text-slate-300 text-[11px] mb-1">Patient Weight (kg)</label>
+                <input type="number" id="calcWeight" value="75" oninput="calculateVdDose()" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono">
+              </div>
+              <div>
+                <label class="block text-slate-300 text-[11px] mb-1">Fluid Overload (Liters)</label>
+                <input type="number" id="calcFluid" value="7.8" step="0.5" oninput="calculateVdDose()" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono">
+              </div>
+              <div>
+                <label class="block text-slate-300 text-[11px] mb-1">Circuit Prime Volume (L)</label>
+                <input type="number" id="calcPrime" value="0.5" step="0.1" oninput="calculateVdDose()" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono">
+              </div>
+              <div class="bg-slate-800/80 p-2.5 rounded-xl border border-sky-500/40 flex flex-col justify-center">
+                <span class="text-[10px] text-sky-300 font-semibold uppercase">Recommended Vanco Load</span>
+                <span id="calcVancoResult" class="mono text-base font-black text-emerald-400">2250 mg</span>
+                <span id="calcVdExpansion" class="text-[10px] text-slate-400">+55% Vd expansion</span>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (type === "hit_calculator") {
+        return `
+          <div class="bg-gradient-to-r from-slate-900 to-rose-950 text-white p-4 rounded-2xl shadow-md border border-rose-900/60">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-rose-300 flex items-center space-x-1.5">
+                <span>🩸</span>
+                <span>Interactive 4T Score Calculator for Heparin-Induced Thrombocytopenia (HIT)</span>
+              </span>
+              <span class="text-[10px] bg-rose-500/30 text-rose-200 px-2 py-0.5 rounded font-bold">Bedside Triage</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs mt-2">
+              <div>
+                <label class="block text-slate-300 text-[10px] mb-1 font-semibold">1. Thrombocytopenia Fall</label>
+                <select id="hitT1" onchange="update4TScore()" class="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-[11px]">
+                  <option value="2">>50% fall or nadir ≥20k (2 pts)</option>
+                  <option value="1">30–50% fall or nadir 10–19k (1 pt)</option>
+                  <option value="0"><30% fall or nadir <10k (0 pts)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-slate-300 text-[10px] mb-1 font-semibold">2. Timing of Fall</label>
+                <select id="hitT2" onchange="update4TScore()" class="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-[11px]">
+                  <option value="2">Days 5–10 OR ≤1 day with recent heparin (2 pts)</option>
+                  <option value="1">Consistent with day 5-10 but missing / post-day 10 (1 pt)</option>
+                  <option value="0">Platelet fall <4 days without recent heparin (0 pts)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-slate-300 text-[10px] mb-1 font-semibold">3. Thrombosis / ΔP Spike</label>
+                <select id="hitT3" onchange="update4TScore()" class="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-[11px]">
+                  <option value="2">Confirmed clot / Oxygenator failure (2 pts)</option>
+                  <option value="1">Progressive / recurrent clot (1 pt)</option>
+                  <option value="0">None (0 pts)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-slate-300 text-[10px] mb-1 font-semibold">4. oTher Causes</label>
+                <select id="hitT4" onchange="update4TScore()" class="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-[11px]">
+                  <option value="1">Possible alternative causes (1 pt)</option>
+                  <option value="2">No apparent alternative cause (2 pts)</option>
+                  <option value="0">Definite alternative cause present (0 pts)</option>
+                </select>
+              </div>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-rose-900/60 flex justify-between items-center">
+              <span class="text-xs text-slate-300">Total Score: <strong id="hitTotalScore" class="text-rose-400 font-bold mono text-sm">7 / 8</strong></span>
+              <span id="hitScoreBadge" class="px-2.5 py-1 rounded-full text-xs font-black bg-rose-600 text-white uppercase tracking-wider">High Probability (Stop Heparin -> Start DTI)</span>
+            </div>
+          </div>
+        `;
+      } else if (type === "crrt_calculator") {
+        return `
+          <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-4 rounded-2xl shadow-md border border-indigo-900/60">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-indigo-300 flex items-center space-x-1.5">
+                <span>⚙️</span>
+                <span>Dual Circuit Clearance Estimator (ECMO + CVVHDF)</span>
+              </span>
+              <span class="text-[10px] bg-indigo-500/30 text-indigo-200 px-2 py-0.5 rounded font-bold">Solute Transport</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs mt-2">
+              <div>
+                <label class="block text-slate-300 text-[10px] mb-1 font-semibold">Effluent Rate (mL/kg/h)</label>
+                <input type="number" id="crrtEffluent" value="35" oninput="calculateCRRTCL()" class="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono">
+              </div>
+              <div>
+                <label class="block text-slate-300 text-[10px] mb-1 font-semibold">Drug Sieving Coeff (Sc)</label>
+                <select id="crrtSc" onchange="calculateCRRTCL()" class="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-[11px]">
+                  <option value="1.0">Meropenem / Levetiracetam (Sc ≈ 1.0)</option>
+                  <option value="0.7">Vancomycin (Sc ≈ 0.7)</option>
+                  <option value="0.15">Daptomycin (Sc ≈ 0.15)</option>
+                  <option value="0.02">Caspofungin (Sc ≈ 0.02)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-slate-300 text-[10px] mb-1 font-semibold">Patient Weight (kg)</label>
+                <input type="number" id="crrtWeight" value="80" oninput="calculateCRRTCL()" class="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono">
+              </div>
+              <div class="bg-slate-800/80 p-2 rounded-xl border border-indigo-500/40 flex flex-col justify-center">
+                <span class="text-[9px] text-indigo-300 font-semibold uppercase">Extracorporeal CL</span>
+                <span id="crrtCLResult" class="mono text-base font-black text-sky-400">46.7 mL/min</span>
+                <span class="text-[9px] text-slate-400">Equivalent GFR cleared</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      return '';
+    }
+
+    // INTERACTIVE CALCULATION LOGIC
+    function calculateVdDose() {
+      const wt = parseFloat(document.getElementById("calcWeight").value) || 75;
+      const fluid = parseFloat(document.getElementById("calcFluid").value) || 0;
+      const prime = parseFloat(document.getElementById("calcPrime").value) || 0.5;
+
+      const baseVd = wt * 0.7; // baseline vanco Vd ~0.7 L/kg
+      const extraVd = fluid + prime;
+      const totalVd = baseVd + extraVd;
+      const expansionPercent = Math.round((extraVd / baseVd) * 100);
+
+      // Desired peak ~25-30 mg/kg
+      const recommendedDose = Math.round((wt * 30) / 250) * 250;
+
+      document.getElementById("calcVancoResult").innerText = `${recommendedDose} mg`;
+      document.getElementById("calcVdExpansion").innerText = `+${expansionPercent}% Vd expansion (${totalVd.toFixed(1)} L)`;
+    }
+
+    function update4TScore() {
+      const t1 = parseInt(document.getElementById("hitT1").value);
+      const t2 = parseInt(document.getElementById("hitT2").value);
+      const t3 = parseInt(document.getElementById("hitT3").value);
+      const t4 = parseInt(document.getElementById("hitT4").value);
+      const total = t1 + t2 + t3 + t4;
+
+      document.getElementById("hitTotalScore").innerText = `${total} / 8`;
+      const badge = document.getElementById("hitScoreBadge");
+
+      if (total >= 6) {
+        badge.className = "px-2.5 py-1 rounded-full text-xs font-black bg-rose-600 text-white uppercase tracking-wider";
+        badge.innerText = "High Probability (Stop Heparin -> Start DTI)";
+      } else if (total >= 4) {
+        badge.className = "px-2.5 py-1 rounded-full text-xs font-black bg-amber-500 text-white uppercase tracking-wider";
+        badge.innerText = "Intermediate Probability (Send HIT ELISA, Monitor closely)";
+      } else {
+        badge.className = "px-2.5 py-1 rounded-full text-xs font-black bg-emerald-600 text-white uppercase tracking-wider";
+        badge.innerText = "Low Probability (<5% HIT risk, search other causes)";
+      }
+    }
+
+    function calculateCRRTCL() {
+      const eff = parseFloat(document.getElementById("crrtEffluent").value) || 35;
+      const sc = parseFloat(document.getElementById("crrtSc").value) || 1.0;
+      const wt = parseFloat(document.getElementById("crrtWeight").value) || 80;
+
+      // Effluent in mL/h = eff * wt
+      const totalEffluentHour = eff * wt; // mL/h
+      const drugClearanceHour = totalEffluentHour * sc; // mL/h
+      const drugClearanceMin = (drugClearanceHour / 60).toFixed(1);
+
+      document.getElementById("crrtCLResult").innerText = `${drugClearanceMin} mL/min`;
+    }
+
+    // 24-DRUG COMPENDIUM RENDERER WITH SEARCH & FILTERS
+    function renderCompendiumView() {
+      return `
+        <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
+          <div class="flex flex-wrap justify-between items-start gap-4">
+            <div>
+              <span class="text-xs font-bold text-sky-600 tracking-wider uppercase">Reference Pharmacopeia</span>
+              <h2 class="text-xl font-black text-slate-900 mt-0.5">Master ECMO Pharmacology Matrix (24 Essential ICU Drugs)</h2>
+              <p class="text-xs text-slate-500 mt-1">Physicochemical properties, partition coefficients ($\log P$), plasma protein binding, and specific circuit dosing mandates.</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-bold text-slate-500">Total Entries:</span>
+              <span class="px-2.5 py-0.5 rounded-full bg-slate-900 text-white font-mono text-xs font-bold" id="compendiumCount">24</span>
+            </div>
+          </div>
+
+          <!-- SEARCH & CATEGORY FILTERS -->
+          <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+            <div class="flex-1 min-w-[220px]">
+              <input type="text" id="compendiumSearchInput" value="${compendiumSearch}" placeholder="Search drug, class, or clinical mandate..." class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500">
+            </div>
+            <div class="flex flex-wrap gap-1 text-xs" id="compFilterGroup">
+              <button onclick="setCompFilter('ALL')" class="filter-btn px-2.5 py-1 rounded-lg font-semibold transition ${compendiumFilter === 'ALL' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-300'}">All (24)</button>
+              <button onclick="setCompFilter('Antimicrobial')" class="filter-btn px-2.5 py-1 rounded-lg font-semibold transition ${compendiumFilter === 'Antimicrobial' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-300'}">Antimicrobials</button>
+              <button onclick="setCompFilter('Antifungal')" class="filter-btn px-2.5 py-1 rounded-lg font-semibold transition ${compendiumFilter === 'Antifungal' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-300'}">Antifungals</button>
+              <button onclick="setCompFilter('Sedative')" class="filter-btn px-2.5 py-1 rounded-lg font-semibold transition ${compendiumFilter === 'Sedative' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-300'}">Sedatives/Analgesics</button>
+              <button onclick="setCompFilter('Anticoagulant')" class="filter-btn px-2.5 py-1 rounded-lg font-semibold transition ${compendiumFilter === 'Anticoagulant' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-300'}">Anticoagulants</button>
+            </div>
+          </div>
+
+          <!-- DRUG TABLE -->
+          <div class="overflow-x-auto text-xs rounded-xl border border-slate-200 shadow-sm">
+            <table class="min-w-full bg-white divide-y divide-slate-200">
+              <thead class="bg-slate-900 text-white">
+                <tr>
+                  <th class="p-3 text-left font-bold">Drug</th>
+                  <th class="p-3 text-left font-bold">Class</th>
+                  <th class="p-3 text-left font-bold">Log P</th>
+                  <th class="p-3 text-left font-bold">Protein Binding</th>
+                  <th class="p-3 text-left font-bold">ECMO Extraction</th>
+                  <th class="p-3 text-left font-bold">CRRT Clearance</th>
+                  <th class="p-3 text-left font-bold min-w-[280px]">Prescription Rule & Clinical Mandate</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200" id="compendiumTableBody">
+                ${getFilteredCompendiumRows()}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function getFilteredCompendiumRows() {
+      const filtered = masterDrugMatrix.filter(d => {
+        const matchesCategory = (compendiumFilter === "ALL") || d.class.toLowerCase().includes(compendiumFilter.toLowerCase());
+        const matchesSearch = (compendiumSearch === "") || 
+          d.name.toLowerCase().includes(compendiumSearch.toLowerCase()) || 
+          d.class.toLowerCase().includes(compendiumSearch.toLowerCase()) ||
+          d.mandate.toLowerCase().includes(compendiumSearch.toLowerCase());
+        return matchesCategory && matchesSearch;
+      });
+
+      if (filtered.length === 0) {
+        return `<tr><td colspan="7" class="p-6 text-center text-slate-400">No matching drugs found in compendium.</td></tr>`;
+      }
+
+      return filtered.map((d, i) => {
+        const isLipophilic = (typeof d.logP === 'number' && d.logP >= 2.0);
+        const isHighBound = (typeof d.pb === 'number' && d.pb >= 85);
+        return `
+          <tr class="${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/70'} hover:bg-sky-50/60 transition">
+            <td class="p-3 font-bold text-slate-900 whitespace-nowrap">
+              ${d.name}
+            </td>
+            <td class="p-3 text-slate-600">${d.class}</td>
+            <td class="p-3 mono font-semibold ${isLipophilic ? 'text-amber-700 font-bold' : 'text-slate-700'}">${d.logP}</td>
+            <td class="p-3 mono ${isHighBound ? 'text-purple-700 font-semibold' : 'text-slate-700'}">${typeof d.pb === 'number' ? d.pb + '%' : d.pb}</td>
+            <td class="p-3 ${d.extraction.includes('Severe') || d.extraction.includes('High') ? 'text-rose-600 font-bold' : 'text-slate-700'}">${d.extraction}</td>
+            <td class="p-3 ${d.crrt.includes('High') || d.crrt.includes('Very') ? 'text-sky-600 font-semibold' : 'text-slate-700'}">${d.crrt}</td>
+            <td class="p-3 text-slate-800 leading-snug">${d.mandate}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function initCompendiumListeners() {
+      const input = document.getElementById("compendiumSearchInput");
+      if (input) {
+        input.addEventListener("input", (e) => {
+          compendiumSearch = e.target.value;
+          document.getElementById("compendiumTableBody").innerHTML = getFilteredCompendiumRows();
+          triggerMathRender();
+        });
+      }
+    }
+
+    function setCompFilter(cat) {
+      compendiumFilter = cat;
+      const container = document.getElementById("stationContent");
+      container.innerHTML = renderCompendiumView();
+      initCompendiumListeners();
+      triggerMathRender();
+    }
+
+    // NAVIGATION
+    function selectStation(id) {
+      currentStation = id;
+      for (let i = 1; i <= 5; i++) {
+        const tab = document.getElementById(`tab${i}`);
+        if (i === id) {
+          tab.className = "py-2.5 px-3.5 font-semibold border-b-2 border-sky-400 text-sky-400 flex items-center space-x-2 whitespace-nowrap transition";
+        } else {
+          tab.className = "py-2.5 px-3.5 font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 whitespace-nowrap transition";
+        }
+      }
+      renderStation();
+    }
+
+    // TOGGLES
+    function toggleDebrief(id) {
+      const box = document.getElementById(`debrief-${id}`);
+      const btnText = document.getElementById(`btnText-${id}`);
+      const btnIcon = document.getElementById(`btnIcon-${id}`);
+
+      if (box.classList.contains("hidden")) {
+        box.classList.remove("hidden");
+        btnText.innerText = "Hide Key";
+        btnIcon.innerText = "🙈";
+      } else {
+        box.classList.add("hidden");
+        btnText.innerText = "Reveal Debrief";
+        btnIcon.innerText = "🔍";
+      }
+      triggerMathRender();
+    }
+
+    function toggleAllDebriefs() {
+      const data = stations[currentStation];
+      if (!data.questions) return;
+      const anyHidden = data.questions.some(q => document.getElementById(`debrief-${q.id}`).classList.contains("hidden"));
+      
+      data.questions.forEach(q => {
+        const box = document.getElementById(`debrief-${q.id}`);
+        const btnText = document.getElementById(`btnText-${q.id}`);
+        const btnIcon = document.getElementById(`btnIcon-${q.id}`);
+        if (anyHidden) {
+          box.classList.remove("hidden");
+          btnText.innerText = "Hide Key";
+          btnIcon.innerText = "🙈";
+        } else {
+          box.classList.add("hidden");
+          btnText.innerText = "Reveal Debrief";
+          btnIcon.innerText = "🔍";
+        }
+      });
+      triggerMathRender();
+    }
+
+    function toggleMode() {
+      isFacilitatorMode = !isFacilitatorMode;
+      const btn = document.getElementById("modeToggleBtn");
+      const label = document.getElementById("modeLabel");
+      const icon = document.getElementById("modeIcon");
+
+      if (isFacilitatorMode) {
+        btn.className = "px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white shadow-md shadow-emerald-900/30 flex items-center space-x-2 transition";
+        label.innerText = "Facilitator Mode";
+        icon.innerText = "👨‍🏫";
+        showToast("Facilitator Mode Active: Model answers visible", "info");
+      } else {
+        btn.className = "px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-700 hover:bg-slate-600 active:scale-95 text-slate-200 shadow-md flex items-center space-x-2 transition";
+        label.innerText = "Delegate Mode";
+        icon.innerText = "🎓";
+        showToast("Delegate Mode Active: Model answers hidden for viva testing", "info");
+      }
+      renderStation();
+    }
+
+    // TIMER ENGINE
+    function updateTimerDisplay() {
+      const mins = Math.floor(timerSeconds / 60);
+      const secs = timerSeconds % 60;
+      document.getElementById("timerDisplay").innerText = 
+        `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      
+      const phase = document.getElementById("timerPhase");
+      const display = document.getElementById("timerDisplay");
+
+      // EDIC 2 Standard 15-Minute Phases:
+      // 0–3 mins: Reading / Case Assimilation (15:00 - 12:00)
+      // 3–12 mins: Active Viva Prompts (12:00 - 03:00)
+      // 12–15 mins: Debrief & Faculty Wrap-up (03:00 - 00:00)
+      if (timerSeconds > 12 * 60) {
+        phase.innerText = "Reading Phase (0-3m)";
+        phase.className = "text-[10px] text-sky-400 font-medium leading-tight";
+        display.className = "mono text-lg font-bold text-sky-400 tabular-nums";
+      } else if (timerSeconds > 3 * 60) {
+        phase.innerText = "Active Viva (3-12m)";
+        phase.className = "text-[10px] text-emerald-400 font-medium leading-tight";
+        display.className = "mono text-lg font-bold text-emerald-400 tabular-nums";
+      } else {
+        phase.innerText = "Wrap-up / Debrief (12-15m)";
+        phase.className = "text-[10px] text-rose-400 font-bold leading-tight animate-pulse";
+        display.className = "mono text-lg font-bold text-rose-400 animate-pulse tabular-nums";
+      }
+    }
+
+    function toggleTimer() {
+      const btn = document.getElementById("timerToggleBtn");
+      if (!timerRunning) {
+        timerRunning = true;
+        btn.innerText = "Pause";
+        btn.className = "px-2.5 py-1 text-xs font-semibold bg-amber-600 hover:bg-amber-500 active:scale-95 rounded-lg text-white transition shadow";
+        
+        // Play start beep
+        playTone(440, "sine", 0.15);
+
+        timerInterval = setInterval(() => {
+          if (timerSeconds > 0) {
+            timerSeconds--;
+            updateTimerDisplay();
+
+            // Audible checkpoints: 3 minutes left warning
+            if (timerSeconds === 3 * 60) {
+              playTone(330, "triangle", 0.4);
+              showToast("3 Minutes Remaining: Begin viva wrap-up", "warning");
+            }
+          } else {
+            clearInterval(timerInterval);
+            timerRunning = false;
+            btn.innerText = "Start";
+            btn.className = "px-2.5 py-1 text-xs font-semibold bg-sky-600 hover:bg-sky-500 active:scale-95 rounded-lg text-white transition shadow";
+            
+            // Audible conclusion chime
+            playStationChime();
+            showToast("Station Time Concluded (15 Minutes)! Please complete examiner scoring.", "alarm");
+            openRubricModal();
+          }
+        }, 1000);
+      } else {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        btn.innerText = "Resume";
+        btn.className = "px-2.5 py-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 active:scale-95 rounded-lg text-white transition shadow";
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      timerSeconds = 15 * 60;
+      updateTimerDisplay();
+      const btn = document.getElementById("timerToggleBtn");
+      btn.innerText = "Start";
+      btn.className = "px-2.5 py-1 text-xs font-semibold bg-sky-600 hover:bg-sky-500 active:scale-95 rounded-lg text-white transition shadow";
+      showToast("Station Timer reset to 15:00", "info");
+    }
+
+    // RUBRIC & EVALUATION LOGIC
+    function openRubricModal() {
+      document.getElementById("rubricModal").classList.remove("hidden");
+    }
+
+    function closeRubricModal() {
+      document.getElementById("rubricModal").classList.add("hidden");
+    }
+
+    function setDomainScore(domain, score) {
+      domainScores[domain] = score;
+      document.getElementById(`scoreVal${domain}`).innerText = `${score} / 2`;
+
+      // Update button styling
+      for (let s = 0; s <= 2; s++) {
+        const btn = document.getElementById(`d${domain}_${s}`);
+        if (s === score) {
+          btn.classList.add("ring-2", "ring-slate-900", "font-black");
+        } else {
+          btn.classList.remove("ring-2", "ring-slate-900", "font-black");
+        }
+      }
+
+      // Calculate total
+      const total = Object.values(domainScores).reduce((a, b) => a + b, 0);
+      document.getElementById("rubricTotalDisplay").innerText = `${total} / 8`;
+      document.getElementById("rubricScoreBadge").innerText = `${total}/8`;
+
+      const verdict = document.getElementById("rubricVerdict");
+      if (total >= 6) {
+        verdict.className = "px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white uppercase";
+        verdict.innerText = "CLEAR PASS";
+      } else if (total >= 4) {
+        verdict.className = "px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white uppercase";
+        verdict.innerText = "BORDERLINE";
+      } else {
+        verdict.className = "px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white uppercase";
+        verdict.innerText = "UNSATISFACTORY";
+      }
+    }
+
+    function copyRubricReport() {
+      const candidate = document.getElementById("candidateName").value || "Candidate";
+      const examiner = document.getElementById("examinerName").value || "EDIC Examiner";
+      const station = document.getElementById("rubricStationSelect").value;
+      const notes = document.getElementById("examinerNotes").value || "None provided";
+      const total = Object.values(domainScores).reduce((a, b) => a + b, 0);
+
+      const reportText = `=== EDIC PART 2 VIVA EVALUATION REPORT ===
+Candidate: ${candidate}
+Examiner: ${examiner}
+Station: ${station}
+Total Score: ${total} / 8 (${document.getElementById("rubricVerdict").innerText})
+
+Domain Breakdown:
+1. Core PK/PD Concepts on Extracorporeal Support: ${domainScores[1]}/2
+2. Prescription Redesign & TDM Precision: ${domainScores[2]}/2
+3. Circuit Complications & Rapid Troubleshooting: ${domainScores[3]}/2
+4. Communication & Multidisciplinary Prioritization: ${domainScores[4]}/2
+
+Examiner Notes & Qualitative Feedback:
+${notes}
+==========================================`;
+
+      const tempTextArea = document.createElement("textarea");
+      tempTextArea.value = reportText;
+      document.body.appendChild(tempTextArea);
+      tempTextArea.select();
+      try {
+        document.execCommand('copy');
+        showToast("Assessment report copied to clipboard!", "success");
+      } catch (err) {
+        showToast("Failed to copy report. Please select text manually.", "alarm");
+      }
+      document.body.removeChild(tempTextArea);
+    }
+
+    // MATH RENDERING TRIGGER
+    function triggerMathRender() {
+      if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "$", right: "$", display: false }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+
+    // LIFECYCLE INITIALIZATION
+    window.onload = function() {
+      renderStation();
+      updateTimerDisplay();
+      
+      // Delay math rendering slightly to guarantee KaTeX scripts are parsed
+      setTimeout(triggerMathRender, 200);
+    };
+  </script>
+</body>
+</html>
